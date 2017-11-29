@@ -562,6 +562,10 @@ public:
     /// \return true if initialisation succeeded.
     virtual bool    init();
 
+    uint8_t spiRead(uint8_t reg); //override
+
+    uint8_t spiWrite(uint8_t reg, uint8_t val); //override
+
     /// Prints the value of all chip registers
     /// to the Serial device if RH_HAVE_SERIAL is defined for the current platform
     /// For debugging purposes only.

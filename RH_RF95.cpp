@@ -4,6 +4,9 @@
 // $Id: RH_RF95.cpp,v 1.11 2016/04/04 01:40:12 mikem Exp mikem $
 
 #include <RH_RF95.h>
+#include <stdio.h>
+#include <inttypes.h>
+#include "drivers/mss_spi/mss_spi.h"
 
 // Interrupt vectors for the 3 Arduino interrupt pins
 // Each interrupt can be handled by a different instance of RH_RF95, allowing you to have
@@ -34,9 +37,18 @@ RH_RF95::RH_RF95(uint8_t slaveSelectPin, uint8_t interruptPin, RHGenericSPI& spi
 
 bool RH_RF95::init()
 {
-    
-    if (!RHSPIDriver::init())
-	return false;
+    const uint8_t frame_size = 16;
+    MSS_SPI_init( &g_mss_spi1 );
+    MSS_SPI_configure_master_mode
+    (
+        &g_mss_spi1,
+        MSS_SPI_SLAVE_0,
+        MSS_SPI_MODE1,
+        MSS_SPI_PCLK_DIV_256,
+        frame_size
+    );
+    //if (!RHSPIDriver::init())
+	//return false;
 
     // Determine the interrupt number that corresponds to the interruptPin
     int interruptNumber = digitalPinToInterrupt(_interruptPin); //***NEED TO FIGURE GPIO PIN
@@ -49,6 +61,7 @@ bool RH_RF95::init()
     // No way to check the device type :-(
     
     // Set sleep mode, so we can also set LORA mode:
+
     spiWrite(RH_RF95_REG_01_OP_MODE, RH_RF95_MODE_SLEEP | RH_RF95_LONG_RANGE_MODE);
     delay(10); // Wait for sleep mode to take over from say, CAD
     // Check we are in sleep mode, with LORA set
@@ -391,5 +404,36 @@ void RH_RF95::setPreambleLength(uint16_t bytes)
 {
     spiWrite(RH_RF95_REG_20_PREAMBLE_MSB, bytes >> 8);
     spiWrite(RH_RF95_REG_21_PREAMBLE_LSB, bytes & 0xff);
+}
+
+uint8_t RH_RF95::spiRead(uint8_t reg)
+{
+    uint8_t val;
+    ATOMIC_BLOCK_START;
+    digitalWrite(_slaveSelectPin, LOW);
+    _spi.transfer(reg & ~RH_SPI_WRITE_MASK); // Send the address with the write mask off
+    val = _spi.transfer(0); // The written value is ignored, reg value is read
+    digitalWrite(_slaveSelectPin, HIGH);
+    ATOMIC_BLOCK_END;
+    return val;
+}
+
+uint8_t RH_RF95::spiWrite(uint8_t reg, uint8_t val)
+{
+    uint8_t status = 0;
+    ATOMIC_BLOCK_START;
+
+    //digitalWrite(_slaveSelectPin, LOW);
+    MSS_SPI_set_slave_select( &g_mss_spi1, MSS_SPI_SLAVE_0 );
+    
+    MSS_SPI_transfer_frame( &g_mss_spi1, master_tx_frame );
+    //status = _spi.transfer(reg | RH_SPI_WRITE_MASK); // Send the address with the write mask on
+    //_spi.transfer(val); // New value follows
+    
+    MSS_SPI_clear_slave_select( &g_mss_spi1, MSS_SPI_SLAVE_0 );
+    //digitalWrite(_slaveSelectPin, HIGH);
+
+    ATOMIC_BLOCK_END;
+    return status;
 }
 
