@@ -410,12 +410,29 @@ uint8_t RH_RF95::spiRead(uint8_t reg)
 {
     uint8_t val;
     ATOMIC_BLOCK_START;
-    digitalWrite(_slaveSelectPin, LOW);
-    _spi.transfer(reg & ~RH_SPI_WRITE_MASK); // Send the address with the write mask off
-    val = _spi.transfer(0); // The written value is ignored, reg value is read
+    MSS_SPI_set_slave_select( &g_mss_spi1, MSS_SPI_SLAVE_0 );
+    //digitalWrite(_slaveSelectPin, LOW);
+    uint16_t master_tx_frame = (reg | RH_SPI_WRITE_MASK) << 8;
+    master_tx_frame += val;
+    MSS_SPI_transfer_frame( &g_mss_spi1, master_tx_frame );
+    //_spi.transfer(reg & ~RH_SPI_WRITE_MASK); // Send the address with the write mask off
+    //val = _spi.transfer(0); // The written value is ignored, reg value is read
     digitalWrite(_slaveSelectPin, HIGH);
     ATOMIC_BLOCK_END;
     return val;
+}
+
+uint8_t RH_RF95::spiBurstRead(uint8_t reg, uint8_t* dest, uint8_t len)
+{
+    uint8_t status = 0;
+    ATOMIC_BLOCK_START;
+    digitalWrite(_slaveSelectPin, LOW);
+    status = _spi.transfer(reg & ~RH_SPI_WRITE_MASK); // Send the start address with the write mask off
+    while (len--)
+    *dest++ = _spi.transfer(0);
+    digitalWrite(_slaveSelectPin, HIGH);
+    ATOMIC_BLOCK_END;
+    return status;
 }
 
 uint8_t RH_RF95::spiWrite(uint8_t reg, uint8_t val)
@@ -423,9 +440,11 @@ uint8_t RH_RF95::spiWrite(uint8_t reg, uint8_t val)
     uint8_t status = 0;
     ATOMIC_BLOCK_START;
 
-    //digitalWrite(_slaveSelectPin, LOW);
     MSS_SPI_set_slave_select( &g_mss_spi1, MSS_SPI_SLAVE_0 );
+    //digitalWrite(_slaveSelectPin, LOW);
     
+    uint16_t master_tx_frame = (reg | RH_SPI_WRITE_MASK) << 8;
+    master_tx_frame += val;
     MSS_SPI_transfer_frame( &g_mss_spi1, master_tx_frame );
     //status = _spi.transfer(reg | RH_SPI_WRITE_MASK); // Send the address with the write mask on
     //_spi.transfer(val); // New value follows
@@ -433,6 +452,28 @@ uint8_t RH_RF95::spiWrite(uint8_t reg, uint8_t val)
     MSS_SPI_clear_slave_select( &g_mss_spi1, MSS_SPI_SLAVE_0 );
     //digitalWrite(_slaveSelectPin, HIGH);
 
+    ATOMIC_BLOCK_END;
+    return status;
+}
+
+uint8_t RH_RF95::spiBurstWrite(uint8_t reg, const uint8_t* src, uint8_t len)
+{
+    uint8_t status = 0;
+    ATOMIC_BLOCK_START;
+
+    MSS_SPI_set_slave_select( &g_mss_spi1, MSS_SPI_SLAVE_0 );
+    //digitalWrite(_slaveSelectPin, LOW);
+
+    uint16_t master_tx_frame = (reg | RH_SPI_WRITE_MASK) << 8;
+    master_tx_frame += *src;
+    MSS_SPI_transfer_frame( &g_mss_spi1, master_tx_frame );
+    *src++;
+    //status = _spi.transfer(reg | RH_SPI_WRITE_MASK); // Send the start address with the write mask on
+    //while (len--)
+    //_spi.transfer(*src++);
+
+    MSS_SPI_clear_slave_select( &g_mss_spi1, MSS_SPI_SLAVE_0 );
+    //digitalWrite(_slaveSelectPin, HIGH);
     ATOMIC_BLOCK_END;
     return status;
 }
