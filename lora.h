@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <time.h>
 #include "drivers/mss_uart/mss_uart.h"
+#include <stdio.h>
 
 
 #define RegFifoTxBaseAddr 0x0E
@@ -220,7 +221,7 @@
 uint8_t init(void);
 void handle_interrupt(void);
 void set_mode_idle(void);
-void sleep(void);
+void set_sleep_mode(void);
 void set_mode_tx(void);
 void set_mode_rx(void);
 void set_modem_config(uint8_t *config);

@@ -1,28 +1,26 @@
-#include <stdio.h>
-#include <inttypes.h>
 #include <drivers/mss_gpio/mss_gpio.h>
-//#include <>
+#include <inttypes.h>
 #include "lora.h"
 
-
-uint8_t last_was_ack = 0;
 
 __attribute__ ((interrupt)) void GPIO1_IRQHandler( void ){
 	MSS_GPIO_clear_irq(MSS_GPIO_1);
 	handle_interrupt();
 }
 
+void MSS_setup(void){
+	MSS_GPIO_init();
+		MSS_GPIO_config( MSS_GPIO_0, MSS_GPIO_OUTPUT_MODE);
+		MSS_GPIO_config( MSS_GPIO_1, MSS_GPIO_INPUT_MODE | MSS_GPIO_IRQ_EDGE_POSITIVE );
+		MSS_GPIO_enable_irq(MSS_GPIO_1);
+		MSS_GPIO_set_output(MSS_GPIO_0, 1);
+}
 
 // Main program
 int main()
 {
-	MSS_GPIO_init();
-	MSS_GPIO_config( MSS_GPIO_0, MSS_GPIO_OUTPUT_MODE);
-	MSS_GPIO_config( MSS_GPIO_1, MSS_GPIO_INPUT_MODE | MSS_GPIO_IRQ_EDGE_POSITIVE );
-	MSS_GPIO_enable_irq(MSS_GPIO_1);
-	//MSS_GPIO_config( MSS_GPIO_10, MSS_GPIO_INOUT_MODE);
-	MSS_GPIO_set_output(MSS_GPIO_0, 1);
 
+	MSS_setup();
 	int init_res = init();
 
 	uint8_t send_buf[] = {0x01, 0x03, 0x05, 0x07};
@@ -43,3 +41,5 @@ int main()
 	return(0);
 
 }
+
+

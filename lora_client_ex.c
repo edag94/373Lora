@@ -50,17 +50,17 @@ void client_ex_setup(void){
 }
 
 void client_ex_loop(void){
+
   printf("Sending to rf95_server\r\n");
-  // Send a message to rf95_server
   uint8_t data[] = "Hello World!";
   send(data, sizeof(data));
 
-  wait_packet_sent(0);
+  wait_packet_sent(500);
   // Now wait for a reply
   uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
   uint8_t len = sizeof(buf);
 
-  if (wait_available_timeout(6500))
+  if (wait_available_timeout(10000))
   {
     // Should be a reply message for us now
     if (recv(buf, &len))
@@ -82,5 +82,5 @@ void client_ex_loop(void){
   }
   //delay(400);
   int i;
-  for (i = 0; i < 1000000; ++i);
+  for (i = 0; i < 10000000; ++i);
 }

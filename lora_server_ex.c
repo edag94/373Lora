@@ -71,7 +71,7 @@ void server_ex_loop()
       send(data, sizeof(data));
       wait_packet_sent(0);
       printf("Sent a reply\r\n");
-       //digitalWrite(led, LOW);
+
     }
     else
     {

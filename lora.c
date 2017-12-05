@@ -1,5 +1,3 @@
-
-
 #include "lora.h"
 
 
@@ -13,19 +11,18 @@ volatile uint8_t buf_len;
 volatile uint8_t rx_buf_valid;
 uint8_t buf[RH_RF95_MAX_PAYLOAD_LEN];
 
-// BEGIN RHGenericDriver code
 uint8_t mode;
 
-uint8_t this_address = 0x37;
-uint8_t promiscuous = 1;
+uint8_t this_address = RH_BROADCAST_ADDRESS;
+uint8_t promiscuous = 0;
 
-volatile uint8_t rx_header_to;
-volatile uint8_t rx_header_from;
+volatile uint8_t rx_header_to = RH_BROADCAST_ADDRESS;
+volatile uint8_t rx_header_from = RH_BROADCAST_ADDRESS;
 volatile uint8_t rx_header_id;
 volatile uint8_t rx_header_flags;
 
 uint8_t tx_header_to = RH_BROADCAST_ADDRESS;
-uint8_t tx_header_from = 0x37;
+uint8_t tx_header_from = RH_BROADCAST_ADDRESS;
 uint8_t tx_header_id = 0x01;
 uint8_t tx_header_flags = 0x00;
 
@@ -42,7 +39,6 @@ void handle_interrupt(void)
 {
     // Read the interrupt register
     uint8_t irq_flags = read(RH_RF95_REG_12_IRQ_FLAGS);
-    //printf("LORA MODE: %u\r\n", mode);
     if (mode == MODE_RX && irq_flags & (RH_RF95_RX_TIMEOUT | RH_RF95_PAYLOAD_CRC_ERROR))
     {
     	rx_bad++;
@@ -90,6 +86,7 @@ uint8_t wait_available_timeout(uint16_t timeout){
 	unsigned long starttime = timeout * 1000;
 	unsigned long counter = 0;
 	while (counter++ < starttime){
+		//printf("%d", counter);
 		if (available() != FALSE){
 			return TRUE;
 		}
@@ -191,7 +188,7 @@ void set_mode_idle(void){
 	}
 }
 
-void sleep(void){
+void set_sleep_mode(void){
 	if (mode != MODE_SLEEP){
 		write(RH_RF95_REG_01_OP_MODE, RH_RF95_MODE_SLEEP);
 		mode = MODE_SLEEP;
