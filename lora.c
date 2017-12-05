@@ -86,7 +86,6 @@ uint8_t wait_available_timeout(uint16_t timeout){
 	unsigned long starttime = timeout * 1000;
 	unsigned long counter = 0;
 	while (counter++ < starttime){
-		//printf("%d", counter);
 		if (available() != FALSE){
 			return TRUE;
 		}
@@ -136,7 +135,7 @@ void set_header_flags(uint8_t set, uint8_t clear){
 	tx_header_flags |= set;
 }
 
-// END RHGenericDriver code
+//END RHGenericDriver code
 
 uint8_t init(void){
 
@@ -144,12 +143,9 @@ uint8_t init(void){
 	 MSS_SPI_config(frame_size);
 
 
-
-
-	//MSS_GPIO_drive_inout(MSS_GPIO_10, MSS_GPIO_HIGH_Z);
-	int i;
 	write(RH_RF95_REG_01_OP_MODE, RH_RF95_LONG_RANGE_MODE);
-//	    delay(10); // Wait for sleep mode to take over from say, CAD
+	//delay
+	volatile int i;
 	for (i=0;i<100000;i++);
 
 	read(RH_RF95_REG_06_FRF_MSB);
@@ -159,7 +155,6 @@ uint8_t init(void){
 	if (read_result != comp)
 	{
 		printf("%d, %d\r\n", read_result, comp);
-		//	Serial.println(spiRead(RH_RF95_REG_01_OP_MODE), HEX);
 		return 1; // No device present?
 	}
 
@@ -168,14 +163,9 @@ uint8_t init(void){
 	write(RH_RF95_REG_0F_FIFO_RX_BASE_ADDR, 128);
 
 	set_mode_idle();
-
 	set_modem_config(modem_default); // Radio default
-
 	set_preamble_length(preamble_len);
-
 	set_frequency(freq);
-
-	// Lowish power
 	set_tx_power(13, 0);
 
 	return 0;
@@ -188,7 +178,7 @@ void set_mode_idle(void){
 	}
 }
 
-void set_sleep_mode(void){
+void set_mode_sleep(void){
 	if (mode != MODE_SLEEP){
 		write(RH_RF95_REG_01_OP_MODE, RH_RF95_MODE_SLEEP);
 		mode = MODE_SLEEP;
@@ -346,7 +336,6 @@ void write(uint8_t addr, uint8_t data){
 	uint16_t cmd = (1 << 15) | (addr << 8) | data;
 	MSS_SPI_set_slave_select(&g_mss_spi1, MSS_SPI_SLAVE_0);
 	MSS_GPIO_set_output(MSS_GPIO_0, 0);
-	printf("%d", cmd);
 	MSS_SPI_transfer_frame( &g_mss_spi1, cmd);
 	MSS_GPIO_set_output(MSS_GPIO_0, 1);
 	MSS_SPI_clear_slave_select(&g_mss_spi1, MSS_SPI_SLAVE_0);

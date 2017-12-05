@@ -220,39 +220,35 @@
 
 uint8_t init(void);
 void handle_interrupt(void);
+void MSS_SPI_config(uint16_t frame_size);
+
 void set_mode_idle(void);
-void set_sleep_mode(void);
+void set_mode_sleep(void);
 void set_mode_tx(void);
 void set_mode_rx(void);
+
 void set_modem_config(uint8_t *config);
 void set_preamble_length(uint16_t bytes);
 void set_frequency(double f);
 void set_tx_power(int8_t power, uint8_t useRFO);
+void set_promiscuous(uint8_t prom);
+void set_this_address(uint8_t addr);
+
+void set_header_to(uint8_t to);
+void set_header_from(uint8_t from);
+void set_header_id(uint8_t id);
+void set_header_flags(uint8_t set, uint8_t clear);
+
 void validate_rx_buf(void);
 uint8_t available(void);
 void clear_rx_buf(void);
 
 void wait_available(void);
-
 uint8_t wait_available_timeout(uint16_t timeout);
-
 uint8_t wait_packet_sent(uint16_t timeout);
-
-void set_promiscuous(uint8_t prom);
-
-void set_this_address(uint8_t addr);
-
-void set_header_to(uint8_t to);
-
-void set_header_from(uint8_t from);
-
-void set_header_id(uint8_t id);
-
-void set_header_flags(uint8_t set, uint8_t clear);
 
 uint8_t send(const uint8_t* data, uint8_t len);
 uint8_t recv(uint8_t* buf, uint8_t* len);
-
 
 uint8_t read(uint8_t addr);
 void write(uint8_t addr, uint8_t data);
@@ -260,10 +256,8 @@ void write(uint8_t addr, uint8_t data);
 uint8_t burst_read(uint8_t addr, uint8_t* res, uint8_t len);
 uint8_t burst_write(uint8_t addr, uint8_t* src, uint8_t len);
 
-void client_ex_setup(void);
-void client_ex_loop(void);
+void client_transaction(void);
 
-void server_ex_setup(void);
-void server_ex_loop(void);
+void server_loop(void);
 
 #endif /* LORA_H_ */
