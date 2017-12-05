@@ -6,6 +6,8 @@
 const uint8_t frame_size = 16;
 const uint8_t burst_frame_size = 8;
 const uint8_t modem_default[] = {0x72, 0x74, 0x00};
+const double freq = 915.0;
+const uint16_t preamble_len = 8;
 
 volatile uint8_t buf_len;
 volatile uint8_t rx_buf_valid;
@@ -14,8 +16,8 @@ uint8_t buf[RH_RF95_MAX_PAYLOAD_LEN];
 // BEGIN RHGenericDriver code
 uint8_t mode;
 
-uint8_t this_address = RH_BROADCAST_ADDRESS;
-uint8_t promiscuous = 0;
+uint8_t this_address = 0x37;
+uint8_t promiscuous = 1;
 
 volatile uint8_t rx_header_to;
 volatile uint8_t rx_header_from;
@@ -23,7 +25,7 @@ volatile uint8_t rx_header_id;
 volatile uint8_t rx_header_flags;
 
 uint8_t tx_header_to = RH_BROADCAST_ADDRESS;
-uint8_t tx_header_from = RH_BROADCAST_ADDRESS;
+uint8_t tx_header_from = 0x37;
 uint8_t tx_header_id = 0x01;
 uint8_t tx_header_flags = 0x00;
 
@@ -49,6 +51,7 @@ void handle_interrupt(void)
     {
 	// Have received a packet
 		uint8_t len = read(RH_RF95_REG_13_RX_NB_BYTES);
+
 		// Reset the fifo read ptr to the beginning of the packet
 		write(RH_RF95_REG_0D_FIFO_ADDR_PTR, read(RH_RF95_REG_10_FIFO_RX_CURRENT_ADDR));
 		burst_read(RH_RF95_REG_00_FIFO, buf, len);
@@ -141,7 +144,7 @@ void set_header_flags(uint8_t set, uint8_t clear){
 uint8_t init(void){
 
 	MSS_SPI_init(&g_mss_spi1);
-	MSS_SPI_config(frame_size);
+	 MSS_SPI_config(frame_size);
 
 
 
@@ -171,9 +174,9 @@ uint8_t init(void){
 
 	set_modem_config(modem_default); // Radio default
 
-	set_preamble_length(8);
+	set_preamble_length(preamble_len);
 
-	set_frequency(915.0);
+	set_frequency(freq);
 
 	// Lowish power
 	set_tx_power(13, 0);
@@ -188,7 +191,7 @@ void set_mode_idle(void){
 	}
 }
 
-void set_mode_sleep(void){
+void sleep(void){
 	if (mode != MODE_SLEEP){
 		write(RH_RF95_REG_01_OP_MODE, RH_RF95_MODE_SLEEP);
 		mode = MODE_SLEEP;
@@ -334,23 +337,28 @@ uint8_t recv(uint8_t* in_buf, uint8_t* len){
 
 uint8_t read(uint8_t addr){
 	uint8_t response;
+	MSS_SPI_set_slave_select(&g_mss_spi1, MSS_SPI_SLAVE_0);
 	MSS_GPIO_set_output(MSS_GPIO_0, 0);
 	response = MSS_SPI_transfer_frame(&g_mss_spi1, addr << 8);
 	MSS_GPIO_set_output(MSS_GPIO_0, 1);
+	MSS_SPI_clear_slave_select(&g_mss_spi1, MSS_SPI_SLAVE_0);
 	return response;
 }
 
 void write(uint8_t addr, uint8_t data){
-	uint16_t command = (1 << 15) | (addr << 8) | data;
+	uint16_t cmd = (1 << 15) | (addr << 8) | data;
+	MSS_SPI_set_slave_select(&g_mss_spi1, MSS_SPI_SLAVE_0);
 	MSS_GPIO_set_output(MSS_GPIO_0, 0);
-	MSS_SPI_transfer_frame( &g_mss_spi1, command);
+	printf("%d", cmd);
+	MSS_SPI_transfer_frame( &g_mss_spi1, cmd);
 	MSS_GPIO_set_output(MSS_GPIO_0, 1);
+	MSS_SPI_clear_slave_select(&g_mss_spi1, MSS_SPI_SLAVE_0);
 }
 
-// TODO: make sure these can properly do burst
 uint8_t burst_read(uint8_t addr, uint8_t* res, uint8_t len){
-	MSS_SPI_config(burst_frame_size);
+	 MSS_SPI_config(burst_frame_size);
   uint8_t status = 0;
+  MSS_SPI_set_slave_select(&g_mss_spi1, MSS_SPI_SLAVE_0);
   MSS_GPIO_set_output(MSS_GPIO_0, 0);
   status = MSS_SPI_transfer_frame(&g_mss_spi1, addr);
   int i;
@@ -358,13 +366,15 @@ uint8_t burst_read(uint8_t addr, uint8_t* res, uint8_t len){
     res[i] = MSS_SPI_transfer_frame(&g_mss_spi1, 0);
   }
   MSS_GPIO_set_output(MSS_GPIO_0, 1);
+  MSS_SPI_clear_slave_select(&g_mss_spi1, MSS_SPI_SLAVE_0);
   MSS_SPI_config(frame_size);
   return status;
 }
 
 uint8_t burst_write(uint8_t addr, uint8_t* src, uint8_t len){
-	MSS_SPI_config(burst_frame_size);
+	 MSS_SPI_config(burst_frame_size);
   uint8_t status = 0;
+  MSS_SPI_set_slave_select(&g_mss_spi1, MSS_SPI_SLAVE_0);
   MSS_GPIO_set_output(MSS_GPIO_0, 0);
   status = MSS_SPI_transfer_frame(&g_mss_spi1, (1 << 7) | addr);
   int i;
@@ -372,17 +382,18 @@ uint8_t burst_write(uint8_t addr, uint8_t* src, uint8_t len){
     MSS_SPI_transfer_frame(&g_mss_spi1, src[i]);
   }
   MSS_GPIO_set_output(MSS_GPIO_0, 1);
+  MSS_SPI_clear_slave_select(&g_mss_spi1, MSS_SPI_SLAVE_0);
   MSS_SPI_config(frame_size);
   return status;
 }
 
-void MSS_SPI_config(uint8_t frame_size){
-	MSS_SPI_configure_master_mode
-	  	(
-	  		&g_mss_spi1,
-	  		MSS_SPI_SLAVE_0,
-	  		MSS_SPI_MODE0,
-	  		MSS_SPI_PCLK_DIV_256,
-	  		frame_size
-	  	);
+void MSS_SPI_config(uint16_t frame_size){
+MSS_SPI_configure_master_mode
+	(
+		&g_mss_spi1,
+		MSS_SPI_SLAVE_0,
+		MSS_SPI_MODE0,
+		MSS_SPI_PCLK_DIV_256,
+		frame_size
+	);
 }

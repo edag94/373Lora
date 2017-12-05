@@ -1,11 +1,9 @@
 #include <stdio.h>
 #include <inttypes.h>
-
 #include <drivers/mss_gpio/mss_gpio.h>
 //#include <>
-
 #include "lora.h"
-//#include "lora_server_ex.h"
+
 
 uint8_t last_was_ack = 0;
 
@@ -13,7 +11,6 @@ __attribute__ ((interrupt)) void GPIO1_IRQHandler( void ){
 	MSS_GPIO_clear_irq(MSS_GPIO_1);
 	handle_interrupt();
 }
-
 
 
 // Main program
@@ -39,8 +36,9 @@ int main()
 	write(RH_RF95_REG_0D_FIFO_ADDR_PTR, 0);
 	uint8_t read_buf[4];
 	burst_read(RH_RF95_REG_00_FIFO, read_buf, 4);
-
 	client_ex_setup();
+
+	//read_addr(RegFifoTxBaseAddr);
 
 	return(0);
 
