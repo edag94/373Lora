@@ -54,7 +54,7 @@ void server_ex_loop()
   if (avail != FALSE)
   {
     // Should be a message for us now
-    uint8_t buf[MAX_MESSAGE_LEN];
+    uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
     uint8_t len = sizeof(buf);
     if (recv(buf, &len))
     {

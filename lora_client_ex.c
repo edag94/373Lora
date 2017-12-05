@@ -57,7 +57,7 @@ void client_ex_loop(void){
 
   wait_packet_sent(0);
   // Now wait for a reply
-  uint8_t buf[MAX_MESSAGE_LEN];
+  uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
   uint8_t len = sizeof(buf);
 
   if (wait_available_timeout(6500))
